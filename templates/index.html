@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم بوت الموارد</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f0f2f5; 
+            color: #333; 
+        }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 20px; 
+            text-align: center; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .header h1 { font-size: 26px; }
+        .header p { margin-top: 5px; opacity: 0.9; font-size: 14px; }
+        .container { display: flex; height: calc(100vh - 75px); }
+
+        .sidebar { 
+            width: 320px; 
+            background: white; 
+            border-left: 1px solid #e2e8f0; 
+            overflow-y: auto; 
+            padding: 20px; 
+        }
+        .sidebar h3 { margin-bottom: 15px; color: #4a5568; font-size: 16px; }
+        .tree-item { 
+            padding: 8px 10px; 
+            cursor: pointer; 
+            border-radius: 6px; 
+            margin: 2px 0; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            transition: all 0.2s; 
+            font-size: 14px;
+        }
+        .tree-item:hover { background: #f7fafc; }
+        .tree-item.active { background: #e3e8ff; color: #4c51bf; font-weight: 600; }
+        .tree-toggle { 
+            width: 18px; 
+            height: 18px; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            font-size: 11px; 
+            color: #718096; 
+            flex-shrink: 0;
+        }
+        .tree-children { 
+            margin-right: 18px; 
+            border-right: 2px solid #edf2f7; 
+        }
+        .tree-icon { font-size: 16px; }
+
+        .main { 
+            flex: 1; 
+            padding: 25px; 
+            overflow-y: auto; 
+        }
+
+        .stats-bar { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 25px; 
+            flex-wrap: wrap; 
+        }
+        .stat-box { 
+            background: white; 
+            padding: 15px 22px; 
+            border-radius: 12px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08); 
+            text-align: center; 
+            min-width: 90px;
+        }
+        .stat-box .number { font-size: 22px; font-weight: bold; color: #667eea; }
+        .stat-box .label { font-size: 12px; color: #718096; margin-top: 3px; }
+
+        .breadcrumb { 
+            background: white; 
+            padding: 12px 18px; 
+            border-radius: 10px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); 
+            display: flex; 
+            gap: 8px; 
+            align-items: center; 
+            flex-wrap: wrap; 
+            font-size: 14px;
+        }
+        .breadcrumb a { 
+            color: #667eea; 
+            text-decoration: none; 
+            cursor: pointer; 
+            font-weight: 500;
+        }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb span { color: #cbd5e0; }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .section-header h2 { color: #2d3748; font-size: 20px; }
+
+        .section-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); 
+            gap: 18px; 
+            margin-bottom: 30px; 
+        }
+        .section-card { 
+            background: white; 
+            border-radius: 14px; 
+            padding: 22px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); 
+            transition: all 0.25s; 
+            position: relative;
+            border: 1px solid transparent;
+        }
+        .section-card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
+            border-color: #e2e8f0;
+        }
+        .section-card .emoji { font-size: 36px; margin-bottom: 12px; }
+        .section-card h3 { font-size: 16px; margin-bottom: 10px; color: #2d3748; }
+        .section-card .type-badge { 
+            display: inline-block; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: 600; 
+        }
+        .type-folder { background: #e6fffa; color: #234e52; }
+        .type-text { background: #fef3c7; color: #92400e; }
+        .type-link { background: #dbeafe; color: #1e40af; }
+        .type-file { background: #fce7f3; color: #9d174d; }
+        .card-actions { 
+            margin-top: 18px; 
+            display: flex; 
+            gap: 8px; 
+            flex-wrap: wrap;
+        }
+        .content-preview { 
+            background: #f7fafc; 
+            padding: 10px 12px; 
+            border-radius: 8px; 
+            margin-top: 12px; 
+            font-size: 13px; 
+            color: #4a5568; 
+            max-height: 80px; 
+            overflow: hidden; 
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        .btn { 
+            padding: 8px 16px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 13px; 
+            font-weight: 600; 
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; transform: translateY(-1px); }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-success:hover { background: #38a169; }
+        .btn-danger { background: #f56565; color: white; }
+        .btn-danger:hover { background: #e53e3e; }
+        .btn-secondary { background: #edf2f7; color: #4a5568; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        .add-form { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 14px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); 
+            margin-bottom: 25px; 
+            border: 1px solid #e2e8f0;
+        }
+        .add-form h3 { margin-bottom: 18px; color: #2d3748; font-size: 18px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 6px; 
+            font-weight: 600; 
+            color: #4a5568; 
+            font-size: 14px;
+        }
+        .form-group input, 
+        .form-group select, 
+        .form-group textarea { 
+            width: 100%; 
+            padding: 10px 14px; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .form-group input:focus, 
+        .form-group select:focus, 
+        .form-group textarea:focus { 
+            outline: none; 
+            border-color: #667eea; 
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1); 
+        }
+        .form-row { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+        }
+        .hidden { display: none !important; }
+
+        .empty-state { 
+            text-align: center; 
+            padding: 80px 20px; 
+            color: #a0aec0; 
+        }
+        .empty-state .icon { font-size: 72px; margin-bottom: 15px; }
+        .empty-state h3 { color: #718096; margin-bottom: 8px; }
+
+        .modal-overlay { 
+            position: fixed; 
+            top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0,0,0,0.5); 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 1000; 
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 16px; 
+            width: 100%;
+            max-width: 520px; 
+            max-height: 90vh; 
+            overflow-y: auto; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal h2 { margin-bottom: 20px; color: #2d3748; }
+        .modal-close { 
+            float: left; 
+            font-size: 24px; 
+            cursor: pointer; 
+            color: #a0aec0; 
+            line-height: 1;
+        }
+        .modal-close:hover { color: #4a5568; }
+
+        .toast { 
+            position: fixed; 
+            bottom: 25px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background: #2d3748; 
+            color: white; 
+            padding: 14px 28px; 
+            border-radius: 10px; 
+            z-index: 2000; 
+            display: none;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .file-input-wrapper {
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-input-wrapper:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .section-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📚 لوحة تحكم بوت الموارد</h1>
+        <p>أضف، عدل، وحذف الأقسام والملفات بسهولة — دعم غير محدود للأقسام الفرعية</p>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <h3>🌲 شجرة الموارد</h3>
+            <div id="tree"></div>
+        </div>
+
+        <div class="main">
+            <div class="stats-bar">
+                <div class="stat-box"><div class="number" id="stat-total">0</div><div class="label">الإجمالي</div></div>
+                <div class="stat-box"><div class="number" id="stat-folders">0</div><div class="label">مجلدات</div></div>
+                <div class="stat-box"><div class="number" id="stat-texts">0</div><div class="label">نصوص</div></div>
+                <div class="stat-box"><div class="number" id="stat-links">0</div><div class="label">روابط</div></div>
+                <div class="stat-box"><div class="number" id="stat-files">0</div><div class="label">ملفات</div></div>
+            </div>
+
+            <div class="breadcrumb" id="breadcrumb">
+                <a onclick="navigateTo(null)">🏠 الرئيسية</a>
+            </div>
+
+            <div class="section-header">
+                <h2 id="current-title">📁 القائمة الرئيسية</h2>
+                <button class="btn btn-success" onclick="showAddForm()">➕ إضافة قسم هنا</button>
+            </div>
+
+            <div id="addForm" class="add-form hidden">
+                <h3>➕ إضافة قسم جديد</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>العنوان *</label>
+                        <input type="text" id="newTitle" placeholder="مثال: الوحدة 1">
+                    </div>
+                    <div class="form-group">
+                        <label>الإيموجي</label>
+                        <input type="text" id="newEmoji" placeholder="📐">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>النوع *</label>
+                        <select id="newType" onchange="onTypeChange()">
+                            <option value="folder">📂 مجلد</option>
+                            <option value="text">📝 نص</option>
+                            <option value="link">🔗 رابط</option>
+                            <option value="file">📄 ملف</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="fileGroup" style="display:none;">
+                        <label>الملف</label>
+                        <input type="file" id="newFile" accept=".pdf,.doc,.docx,.txt,.zip,.rar,.png,.jpg,.jpeg,.mp4">
+                    </div>
+                </div>
+                <div class="form-group" id="contentGroup" style="display:none;">
+                    <label>المحتوى (نص أو رابط)</label>
+                    <textarea id="newContent" rows="6" placeholder="اكتب النص هنا أو الصق الرابط..."></textarea>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn btn-primary" onclick="addSection()">💾 حفظ</button>
+                    <button class="btn btn-secondary" onclick="hideAddForm()">❌ إلغاء</button>
+                </div>
+            </div>
+
+            <div id="sectionsGrid" class="section-grid"></div>
+            <div id="emptyState" class="empty-state hidden">
+                <div class="icon">📂</div>
+                <h3>هذا المجلد فارغ</h3>
+                <p>اضغط "إضافة قسم هنا" لإضافة محتوى جديد</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <span class="modal-close" onclick="closeEditModal()">&times;</span>
+            <h2>✏️ تعديل القسم</h2>
+            <input type="hidden" id="editId">
+            <div class="form-group">
+                <label>العنوان</label>
+                <input type="text" id="editTitle">
+            </div>
+            <div class="form-group">
+                <label>الإيموجي</label>
+                <input type="text" id="editEmoji">
+            </div>
+            <div class="form-group" id="editContentGroup">
+                <label>المحتوى</label>
+                <textarea id="editContent" rows="6"></textarea>
+                <small style="color:#718096;display:block;margin-top:6px;">للملفات: اتركه فارغاً إذا لم ترد تغيير الملف، أو ارفع ملف جديد:</small>
+                <input type="file" id="editFile" style="margin-top:8px;" accept=".pdf,.doc,.docx,.txt,.zip,.rar,.png,.jpg,.jpeg,.mp4">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button class="btn btn-primary" onclick="saveEdit()">💾 حفظ التعديلات</button>
+                <button class="btn btn-secondary" onclick="closeEditModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let currentParentId = null;
+        let allSections = [];
+        let sectionMap = {};
+
+        async function loadTree() {
+            try {
+                const res = await fetch("/api/tree");
+                allSections = await res.json();
+                sectionMap = {};
+                allSections.forEach(s => sectionMap[s.id] = s);
+                renderTree();
+                updateStats();
+            } catch (e) {
+                showToast("❌ خطأ في تحميل البيانات");
+            }
+        }
+
+        function renderTree() {
+            const tree = document.getElementById("tree");
+            tree.innerHTML = "";
+            const roots = allSections.filter(s => s.parent_id === null);
+            roots.forEach(root => {
+                tree.appendChild(createTreeNode(root, 0));
+            });
+        }
+
+        function createTreeNode(section, depth) {
+            const div = document.createElement("div");
+            const children = allSections.filter(s => s.parent_id === section.id);
+            const hasChildren = children.length > 0;
+
+            const item = document.createElement("div");
+            item.className = "tree-item";
+            if (section.id === currentParentId) item.classList.add("active");
+            item.style.paddingRight = (10 + depth * 14) + "px";
+
+            const iconMap = { folder: "📂", text: "📝", link: "🔗", file: "📄" };
+            const typeIcon = iconMap[section.type] || "📄";
+
+            item.innerHTML = `
+                <span class="tree-toggle" onclick="toggleTree(event, ${section.id})" style="visibility:${hasChildren?"visible":"hidden"}">▶</span>
+                <span class="tree-icon">${typeIcon}</span>
+                <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${section.emoji || ""} ${section.title}</span>
+            `;
+            item.onclick = (e) => { 
+                if(!e.target.classList.contains("tree-toggle")) navigateTo(section.id); 
+            };
+
+            div.appendChild(item);
+
+            if (hasChildren) {
+                const childrenDiv = document.createElement("div");
+                childrenDiv.className = "tree-children hidden";
+                childrenDiv.id = `tree-children-${section.id}`;
+                children.forEach(child => {
+                    childrenDiv.appendChild(createTreeNode(child, depth + 1));
+                });
+                div.appendChild(childrenDiv);
+            }
+
+            return div;
+        }
+
+        function toggleTree(e, id) {
+            e.stopPropagation();
+            const el = document.getElementById(`tree-children-${id}`);
+            const toggle = e.target;
+            if (el.classList.contains("hidden")) {
+                el.classList.remove("hidden");
+                toggle.textContent = "▼";
+            } else {
+                el.classList.add("hidden");
+                toggle.textContent = "▶";
+            }
+        }
+
+        function updateStats() {
+            document.getElementById("stat-total").textContent = allSections.length;
+            document.getElementById("stat-folders").textContent = allSections.filter(s => s.type === "folder").length;
+            document.getElementById("stat-texts").textContent = allSections.filter(s => s.type === "text").length;
+            document.getElementById("stat-links").textContent = allSections.filter(s => s.type === "link").length;
+            document.getElementById("stat-files").textContent = allSections.filter(s => s.type === "file").length;
+        }
+
+        async function navigateTo(parentId) {
+            currentParentId = parentId;
+            try {
+                const res = await fetch(`/api/sections?parent_id=${parentId === null ? "null" : parentId}`);
+                const sections = await res.json();
+
+                // Breadcrumb
+                const breadcrumb = document.getElementById("breadcrumb");
+                let html = `<a onclick="navigateTo(null)">🏠 الرئيسية</a>`;
+                if (parentId !== null) {
+                    const path = [];
+                    let curr = sectionMap[parentId];
+                    while (curr) {
+                        path.unshift(curr);
+                        curr = curr.parent_id ? sectionMap[curr.parent_id] : null;
+                    }
+                    path.forEach(s => {
+                        html += ` <span>/</span> <a onclick="navigateTo(${s.id})">${s.emoji || ""} ${s.title}</a>`;
+                    });
+                }
+                breadcrumb.innerHTML = html;
+
+                // Title
+                const titleEl = document.getElementById("current-title");
+                if (parentId === null) {
+                    titleEl.textContent = "📁 القائمة الرئيسية";
+                } else {
+                    const s = sectionMap[parentId];
+                    titleEl.textContent = `${s.emoji || "📂"} ${s.title}`;
+                }
+
+                // Grid
+                const grid = document.getElementById("sectionsGrid");
+                const empty = document.getElementById("emptyState");
+                grid.innerHTML = "";
+
+                if (sections.length === 0) {
+                    empty.classList.remove("hidden");
+                } else {
+                    empty.classList.add("hidden");
+                    sections.forEach(s => {
+                        const card = document.createElement("div");
+                        card.className = "section-card";
+                        const typeClass = `type-${s.type}`;
+                        const typeName = {folder:"مجلد", text:"نص", link:"رابط", file:"ملف"}[s.type];
+                        let preview = "";
+                        if (s.content) {
+                            let short = s.content;
+                            if (s.type === "file") {
+                                const parts = s.content.split("_");
+                                short = parts.length > 1 ? parts.slice(1).join("_") : s.content;
+                            } else {
+                                short = s.content.length > 120 ? s.content.substring(0,120)+"..." : s.content;
+                            }
+                            preview = `<div class="content-preview">${short}</div>`;
+                        }
+                        card.innerHTML = `
+                            <div class="emoji">${s.emoji || "📄"}</div>
+                            <h3>${s.title}</h3>
+                            <span class="type-badge ${typeClass}">${typeName}</span>
+                            ${preview}
+                            <div class="card-actions">
+                                ${s.type === "folder" ? `<button class="btn btn-primary btn-sm" onclick="navigateTo(${s.id})">📂 فتح</button>` : ""}
+                                <button class="btn btn-secondary btn-sm" onclick="editSection(${s.id})">✏️ تعديل</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteSection(${s.id})">🗑️ حذف</button>
+                            </div>
+                        `;
+                        grid.appendChild(card);
+                    });
+                }
+
+                renderTree();
+            } catch (e) {
+                showToast("❌ خطأ في التنقل");
+            }
+        }
+
+        function showAddForm() {
+            document.getElementById("addForm").classList.remove("hidden");
+            document.getElementById("newTitle").focus();
+        }
+
+        function hideAddForm() {
+            document.getElementById("addForm").classList.add("hidden");
+            document.getElementById("newTitle").value = "";
+            document.getElementById("newEmoji").value = "";
+            document.getElementById("newContent").value = "";
+            document.getElementById("newFile").value = "";
+            onTypeChange();
+        }
+
+        function onTypeChange() {
+            const type = document.getElementById("newType").value;
+            document.getElementById("contentGroup").style.display = (type === "text" || type === "link") ? "block" : "none";
+            document.getElementById("fileGroup").style.display = type === "file" ? "block" : "none";
+        }
+
+        async function addSection() {
+            const title = document.getElementById("newTitle").value.trim();
+            const emoji = document.getElementById("newEmoji").value.trim();
+            const type = document.getElementById("newType").value;
+            const contentInput = document.getElementById("newContent").value.trim();
+            const fileInput = document.getElementById("newFile");
+
+            if (!title) {
+                showToast("❌ العنوان مطلوب!");
+                return;
+            }
+
+            let content = contentInput;
+
+            if (type === "file") {
+                if (!fileInput.files[0]) {
+                    showToast("❌ اختر ملفاً!");
+                    return;
+                }
+                const formData = new FormData();
+                formData.append("file", fileInput.files[0]);
+                try {
+                    const uploadRes = await fetch("/api/upload", {method:"POST", body:formData});
+                    const uploadData = await uploadRes.json();
+                    if (uploadData.error) {
+                        showToast("❌ خطأ في رفع الملف");
+                        return;
+                    }
+                    content = uploadData.path;
+                } catch (e) {
+                    showToast("❌ فشل رفع الملف");
+                    return;
+                }
+            }
+
+            try {
+                const res = await fetch("/api/sections", {
+                    method: "POST",
+                    headers: {"Content-Type":"application/json"},
+                    body: JSON.stringify({title, emoji, type, content, parent_id: currentParentId})
+                });
+
+                if (res.ok) {
+                    showToast("✅ تم الإضافة بنجاح!");
+                    hideAddForm();
+                    await loadTree();
+                    navigateTo(currentParentId);
+                } else {
+                    showToast("❌ حدث خطأ!");
+                }
+            } catch (e) {
+                showToast("❌ خطأ في الاتصال");
+            }
+        }
+
+        function editSection(id) {
+            const s = sectionMap[id];
+            document.getElementById("editId").value = id;
+            document.getElementById("editTitle").value = s.title;
+            document.getElementById("editEmoji").value = s.emoji || "";
+            document.getElementById("editContent").value = s.content || "";
+            document.getElementById("editFile").value = "";
+            document.getElementById("editContentGroup").style.display = (s.type === "text" || s.type === "link" || s.type === "file") ? "block" : "none";
+            document.getElementById("editModal").classList.add("active");
+        }
+
+        function closeEditModal() {
+            document.getElementById("editModal").classList.remove("active");
+        }
+
+        async function saveEdit() {
+            const id = parseInt(document.getElementById("editId").value);
+            const title = document.getElementById("editTitle").value.trim();
+            const emoji = document.getElementById("editEmoji").value.trim();
+            let content = document.getElementById("editContent").value.trim();
+            const fileInput = document.getElementById("editFile");
+            const s = sectionMap[id];
+
+            if (s.type === "file" && fileInput.files[0]) {
+                const formData = new FormData();
+                formData.append("file", fileInput.files[0]);
+                try {
+                    const uploadRes = await fetch("/api/upload", {method:"POST", body:formData});
+                    const uploadData = await uploadRes.json();
+                    if (!uploadData.error) {
+                        content = uploadData.path;
+                    }
+                } catch (e) {
+                    showToast("❌ فشل رفع الملف الجديد");
+                    return;
+                }
+            }
+
+            try {
+                const res = await fetch(`/api/sections/${id}`, {
+                    method: "PUT",
+                    headers: {"Content-Type":"application/json"},
+                    body: JSON.stringify({title, emoji, content})
+                });
+
+                if (res.ok) {
+                    showToast("✅ تم التعديل!");
+                    closeEditModal();
+                    await loadTree();
+                    navigateTo(currentParentId);
+                } else {
+                    showToast("❌ خطأ في التعديل!");
+                }
+            } catch (e) {
+                showToast("❌ خطأ في الاتصال");
+            }
+        }
+
+        async function deleteSection(id) {
+            const s = sectionMap[id];
+            const children = allSections.filter(x => x.parent_id === id).length;
+            const msg = children > 0 ? `سيتم حذف ${children} عنصر فرعي أيضاً!` : "هل أنت متأكد؟";
+            if (!confirm(`🗑️ حذف "${s.title}"؟\n${msg}`)) return;
+
+            try {
+                const res = await fetch(`/api/sections/${id}`, {method: "DELETE"});
+                if (res.ok) {
+                    showToast("✅ تم الحذف!");
+                    await loadTree();
+                    navigateTo(currentParentId);
+                } else {
+                    showToast("❌ خطأ في الحذف!");
+                }
+            } catch (e) {
+                showToast("❌ خطأ في الاتصال");
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            toast.textContent = msg;
+            toast.style.display = "block";
+            setTimeout(() => toast.style.display = "none", 3000);
+        }
+
+        // Close modal on outside click
+        document.getElementById("editModal").addEventListener("click", function(e) {
+            if (e.target === this) closeEditModal();
+        });
+
+        // Init
+        loadTree().then(() => navigateTo(null));
+    </script>
+</body>
+</html>
