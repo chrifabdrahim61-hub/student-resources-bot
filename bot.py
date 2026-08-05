@@ -5,7 +5,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 from database import init_db, get_children, get_section, get_db
 
 # ==================== CONFIG ====================
-BOT_TOKEN = "8822675093:AAHNyLwwUwghzwdyLUH7ohgwHRpiI3Pw-_s"  # <-- REPLACE THIS!
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 ITEMS_PER_PAGE = 10
 # =================================================
 
